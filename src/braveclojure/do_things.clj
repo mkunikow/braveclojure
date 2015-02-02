@@ -31,8 +31,8 @@
 ;;   1.2.3. when
 
 (when true
-  (println "Success!")
-  "abra cadabra")
+      (println "Success!")
+      "abra cadabra")
 ; => Success!
 ; => "abra cadabra"
 
@@ -277,3 +277,51 @@ failed-protagonist-names
 ;than 10 functions on 10 data structures.
 ;
 ;-- Alan Perlis
+
+
+;;  3.1. Calling Functions
+
+(+ 1 2 3 4)
+(* 1 2 3 4)
+(first [1 2 3 4])
+
+;; Return value of "or" is first truthy value, and + is truthy
+(or + -)
+
+((or + -) 1 2 3)
+; => 6
+
+;; Return value of "and" is first falsey value or last truthy value.
+;; + is the last truthy value
+((and (= 1 1) +) 1 2 3)
+
+;; Return value of "first" is the first element in a sequence
+((first [+ 0]) 1 2 3)
+
+;However, these aren't valid function calls:
+;; Numbers aren't functions
+;(1 2 3 4)
+
+;; Neither are strings
+;("test" 1 2 3)
+
+;; The "inc" function increments a number by 1
+(inc 1.1)
+; => 2.1
+
+;Take the map function (not to be confused with the map data structure). map creates a new list by applying
+; a function to each member of a collection:
+(map inc [0 1 2 3])
+; => (1 2 3 4)
+
+
+; Clojure evaluates all function arguments recursively before passing them to the function.
+
+;; Here's the function call. It kicks off the evaluation process
+(+ (inc 199) (/ 100 (- 7 2)))
+
+;; All sub-forms are evaluated before applying the "+" function
+(+ 200 (/ 100 (- 7 2))) ; evaluated "(inc 199)"
+(+ 200 (/ 100 5)) ; evaluated (- 7 2)
+(+ 200 20) ; evaluated (/ 100 5)
+220 ; final evaluation
