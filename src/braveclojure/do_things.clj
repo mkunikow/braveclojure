@@ -325,3 +325,220 @@ failed-protagonist-names
 (+ 200 (/ 100 5)) ; evaluated (- 7 2)
 (+ 200 20) ; evaluated (/ 100 5)
 220 ; final evaluation
+
+;: 3.3.2. Parameters
+
+
+;Clojure functions can be defined with zero or more parameters:
+
+defn no-params
+[]
+"I take no parameters!"
+
+(defn one-param
+      [x]
+      (str "I take one param: " x " It'd better be a string!"))
+
+(defn two-params
+      [x y]
+      (str "Two parameters! That's nothing! Pah! I will smoosh them "
+           "together to spite you! " x y))
+
+;Here's the general form of a multiple-arity function definition
+(defn multi-arity
+      ;; 3-arity arguments and body
+      ([first-arg second-arg third-arg]
+        (do-things first-arg second-arg third-arg))
+      ;; 2-arity arguments and body
+      ([first-arg second-arg]
+        (do-things first-arg second-arg))
+      ;; 1-arity arguments and body
+      ([first-arg]
+        (do-things first-arg)))
+
+;Overloading by arity is one way to provide default values for arguments.
+(defn x-chop
+      "Describe the kind of chop you're inflicting on someone"
+      ([name chop-type]
+        (str "I " chop-type " chop " name "! Take that!"))
+      ([name]
+        (x-chop name "karate")))
+
+(x-chop "Kanye West" "slap")
+; => "I slap chop Kanye West! Take that!"
+
+(x-chop "Kanye East")
+; => "I karate chop Kanye East! Take that!"
+
+
+;You can also make each arity do something completely unrelated:
+(defn weird-arity
+      ([]
+        "Destiny dressed you this morning my friend, and now Fear is
+        trying to pull off your pants. If you give up, if you give in,
+        you're gonna end up naked with Fear just standing there laughing
+        at your dangling unmentionables! - the Tick")
+      ([number]
+        (inc number)))
+
+;Clojure also allows you to define variable-arity functions by including a "rest-param"
+(defn codger-communication
+      [whippersnapper]
+      (str "Get off my lawn, " whippersnapper "!!!"))
+
+(defn codger
+      [& whippersnappers] ;; the ampersand indicates the "rest-param"
+      (map codger-communication whippersnappers))
+
+(codger "Billy" "Anne-Marie" "The Incredible Bulk")
+; =>
+; ("Get off my lawn, Billy!!!"
+;  "Get off my lawn, Anne-Marie!!!"
+;  "Get off my lawn, The Incredible Bulk!!!")
+
+;You can mix rest-params with normal params, but the rest-param has to come last:
+
+;; 3.3.3. Destructuring
+
+;The basic idea behind destructuring is that it lets you concisely bind symbols to values within a collection.
+
+;; Return the first element of a collection
+(defn my-first
+      [[first-thing]] ; Notice that first-thing is within a vector
+      first-thing)
+
+(my-first ["oven" "bike" "waraxe"])
+; => "oven"
+
+;Here's how you would accomplish the same thing without destructuring:
+(defn my-other-first
+      [collection]
+      (first collection))
+(my-other-first ["nickel" "hair"])
+; => "nickel"
+
+;When destructuring a vector or list, you can name as many elements as you want and also use rest params:
+(defn chooser
+      [[first-choice second-choice & unimportant-choices]]
+      (println (str "Your first choice is: " first-choice))
+      (println (str "Your second choice is: " second-choice))
+      (println (str "We're ignoring the rest of your choices. "
+                    "Here they are in case you need to cry over them: "
+                    (clojure.string/join ", " unimportant-choices))))
+(chooser ["Marmalade", "Handsome Jack", "Pigpen", "Aquaman"])
+; =>
+; Your first choice is: Marmalade
+; Your second choice is: Handsome Jack
+; We're ignoring the rest of your choices. Here they are in case \
+; you need to cry over them: Pigpen, Aquaman
+
+;Deatructing map
+(defn announce-treasure-location
+      [{lat :lat lng :lng}]
+      (println (str "Treasure lat: " lat))
+      (println (str "Treasure lng: " lng)))
+(announce-treasure-location {:lat 28.22 :lng 81.33})
+; =>
+; Treasure lat: 28.22
+; Treasure lng: 81.33
+
+;; Works the same as above.
+(defn announce-treasure-location
+      [{:keys [lat lng]}]
+      (println (str "Treasure lat: " lat))
+      (println (str "Treasure lng: " lng)))
+
+;; Works the same as above.
+(defn receive-treasure-location
+  [{:keys [lat lng] :as treasure-location}]
+  (println (str "Treasure lat: " lat))
+  (println (str "Treasure lng: " lng))
+
+;; One would assume that this would put in new coordinates for your ship
+  (steer-ship! treasure-location))
+
+;; 3.3.4. Function body
+
+;Your function body can contain any forms. Clojure automatically returns the last form evaluated:
+
+(defn illustrative-function
+  []
+  (+ 1 304)
+  30
+  "joe")
+(illustrative-function)
+; => "joe"
+
+(defn number-comment
+  [x]
+  (if (> x 6)
+    "Oh my gosh! What a big number!"
+    "That number's OK, I guess"))
+
+(number-comment 5)
+; => "That number's OK, I guess"
+
+(number-comment 7)
+; => "Oh my gosh! What a big number!"
+
+;; 3.4. Anonymous Functions
+
+;There are two ways to create anonymous functions. The first is to use the fn form:
+;; This looks a lot like defn, doesn't it?
+(fn [param-list]
+  function body)
+
+;; Example
+(map (fn [name] (str "Hi, " name))
+     ["Darth Vader" "Mr. Magoo"])
+; => ("Hi, Darth Vader" "Hi, Mr. Magoo")
+
+;; Another example
+((fn [x] (* x 3)) 8)
+; => 24
+
+;You could even associate your anonymous function with a name, which shouldn't come as a surprise:
+(def my-special-multiplier (fn [x] (* x 3)))
+(my-special-multiplier 12)
+; => 36
+
+;There's another, more compact way to create anonymous functions:
+;; Whoa this looks weird.
+#(* % 3)
+
+;; Apply this weird looking thing
+(#(* % 3) 8)
+; => 24
+
+;; Another example
+(map #(str "Hi, " %)
+     ["Darth Vader" "Mr. Magoo"])
+; => ("Hi, Darth Vader" "Hi, Mr. Magoo")
+
+;If your anonymous function takes multiple arguments, you can distinguish them like this: %1, %2, %3, etc. % is equivalent to %1:
+(#(str %1 " and " %2) "corn bread" "butter beans")
+; => "corn bread and butter beans"
+
+;You can also pass a rest param:
+(#(identity %&) 1 "blarg" :yip)
+; => (1 "blarg" :yip)
+
+;The main difference between this form and fn is that this form can easily become unreadable and is best used for short functions.
+
+
+;; 3.5. Returning Functions
+
+; Functions can return other functions. The returned functions are closures,
+; which means that they can access all the variables that were in scope when the function was created.
+
+;; inc-by is in scope, so the returned function has access to it even
+;; when the returned function is used outside inc-maker
+(defn inc-maker
+  "Create a custom incrementor"
+  [inc-by]
+  #(+ % inc-by))
+
+(def inc3 (inc-maker 3))
+
+(inc3 7)
+; => 10
