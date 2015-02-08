@@ -331,9 +331,9 @@ failed-protagonist-names
 
 ;Clojure functions can be defined with zero or more parameters:
 
-defn no-params
-[]
-"I take no parameters!"
+(defn no-params
+  []
+  (str "I take no parameters!"))
 
 (defn one-param
       [x]
@@ -345,6 +345,11 @@ defn no-params
            "together to spite you! " x y))
 
 ;Here's the general form of a multiple-arity function definition
+
+(defn do-things
+      [& args]
+  (str args))
+
 (defn multi-arity
       ;; 3-arity arguments and body
       ([first-arg second-arg third-arg]
@@ -449,6 +454,11 @@ defn no-params
       (println (str "Treasure lng: " lng)))
 
 ;; Works the same as above.
+
+(defn steer-ship!
+  [& args]
+  identity args)
+
 (defn receive-treasure-location
   [{:keys [lat lng] :as treasure-location}]
   (println (str "Treasure lat: " lat))
@@ -485,8 +495,8 @@ defn no-params
 
 ;There are two ways to create anonymous functions. The first is to use the fn form:
 ;; This looks a lot like defn, doesn't it?
-(fn [param-list]
-  function body)
+;(fn [param-list]
+;  function body)
 
 ;; Example
 (map (fn [name] (str "Hi, " name))
@@ -542,3 +552,193 @@ defn no-params
 
 (inc3 7)
 ; => 10
+
+;; 4. Pulling It All Together
+
+;; 4.1. The Shire's Next Top Model
+
+(def asym-hobbit-body-parts [{:name "head" :size 3}
+                             {:name "left-eye" :size 1}
+                             {:name "left-ear" :size 1}
+                             {:name "mouth" :size 1}
+                             {:name "nose" :size 1}
+                             {:name "neck" :size 2}
+                             {:name "left-shoulder" :size 3}
+                             {:name "left-upper-arm" :size 3}
+                             {:name "chest" :size 10}
+                             {:name "back" :size 10}
+                             {:name "left-forearm" :size 3}
+                             {:name "abdomen" :size 6}
+                             {:name "left-kidney" :size 1}
+                             {:name "left-hand" :size 2}
+                             {:name "left-knee" :size 2}
+                             {:name "left-thigh" :size 4}
+                             {:name "left-lower-leg" :size 3}
+                             {:name "left-achilles" :size 1}
+                             {:name "left-foot" :size 2}])
+
+
+(defn needs-matching-part?
+  [part]
+  (re-find #"^left-" (:name part)))
+
+(defn make-matching-part
+  [part]
+  {:name (clojure.string/replace (:name part) #"^left-" "right-")
+   :size (:size part)})
+
+(defn symmetrize-body-parts
+  "Expects a seq of maps which have a :name and :size"
+  [asym-body-parts]
+  (loop [remaining-asym-parts asym-body-parts
+         final-body-parts []]
+    (if (empty? remaining-asym-parts)
+      final-body-parts
+      (let [[part & remaining] remaining-asym-parts
+            final-body-parts (conj final-body-parts part)]
+        (if (needs-matching-part? part)
+          (recur remaining (conj final-body-parts (make-matching-part part)))
+          (recur remaining final-body-parts))))))
+
+(symmetrize-body-parts asym-hobbit-body-parts)
+; => the following is the return value
+[{:name "head", :size 3}
+ {:name "left-eye", :size 1}
+ {:name "right-eye", :size 1}
+ {:name "left-ear", :size 1}
+ {:name "right-ear", :size 1}
+ {:name "mouth", :size 1}
+ {:name "nose", :size 1}
+ {:name "neck", :size 2}
+ {:name "left-shoulder", :size 3}
+ {:name "right-shoulder", :size 3}
+ {:name "left-upper-arm", :size 3}
+ {:name "right-upper-arm", :size 3}
+ {:name "chest", :size 10}
+ {:name "back", :size 10}
+ {:name "left-forearm", :size 3}
+ {:name "right-forearm", :size 3}
+ {:name "abdomen", :size 6}
+ {:name "left-kidney", :size 1}
+ {:name "right-kidney", :size 1}
+ {:name "left-hand", :size 2}
+ {:name "right-hand", :size 2}
+ {:name "left-knee", :size 2}
+ {:name "right-knee", :size 2}
+ {:name "left-thigh", :size 4}
+ {:name "right-thigh", :size 4}
+ {:name "left-lower-leg", :size 3}
+ {:name "right-lower-leg", :size 3}
+ {:name "left-achilles", :size 1}
+ {:name "right-achilles", :size 1}
+ {:name "left-foot", :size 2}
+ {:name "right-foot", :size 2}]
+
+;; 4.2. let
+
+;(let [[part & remaining] remaining-asym-parts
+;      final-body-parts (conj final-body-parts part)]
+;  some-stuff)
+
+(let [x 3]
+  x)
+; => 3
+
+(def dalmatian-list
+  ["Pongo" "Perdita" "Puppy 1" "Puppy 2"]) ; and 97 more...
+(let [dalmatians (take 2 dalmatian-list)]
+  dalmatians)
+; => ("Pongo" "Perdita")
+
+;let also introduces a new scope:
+(def x 0)
+(let [x 1] x)
+; => 1
+
+;However, you can reference existing bindings in your let binding:
+(def x 0)
+(let [x (inc x)] x)
+; => 1
+
+;You can also use rest-params in let, just like you can in functions:
+(let [[pongo & dalmatians] dalmatian-list]
+  [pongo dalmatians])
+; => ["Pongo" ("Perdita" "Puppy 1" "Puppy 2")]
+
+;Let's have another look at the let form in our symmetrizing function so we can understand exactly what's going on:
+
+;; Associate "part" with the first element of "remaining-asym-parts"
+;; Associate "remaining" with the rest of the elements in "remaining-asym-parts"
+;; Associate "final-body-parts" with the result of (conj final-body-parts part)
+;(let [[part & remaining] remaining-asym-parts
+;      final-body-parts (conj final-body-parts part)]
+;  (if (needs-matching-part? part)
+;    (recur remaining (conj final-body-parts (make-matching-part part)))
+;    (recur remaining final-body-parts)))
+
+
+  ;(if (needs-matching-part? (first remaining-asym-parts))
+  ;  (recur (rest remaining-asym-parts)
+  ;       (conj (conj final-body-parts (first remaining-asym-parts))
+  ;             (make-matching-part (first remaining-asym-parts))))
+    ;(recur (rest remaining-asm-parts)
+    ;     (conj (conj final-body-parts (first remaining-asym-parts)))))
+
+
+;4.3. loop
+
+(loop [iteration 0]
+  (println (str "Iteration " iteration))
+  (if (> iteration 3)
+    (println "Goodbye!")
+    (recur (inc iteration))))
+; =>
+;Iteration 0
+;Iteration 1
+;Iteration 2
+;Iteration 3
+;Iteration 4
+;Goodbye!
+
+;You could in fact accomplish the same thing just using functions:
+
+(defn recursive-printer
+  ([]
+    (recursive-printer 0))
+  ([iteration]
+    (println iteration)
+    (if (> iteration 3)
+      (println "Goodbye!")
+      (recursive-printer (inc iteration)))))
+
+(recursive-printer)
+; =>
+;Iteration 0
+;Iteration 1
+;Iteration 2
+;Iteration 3
+;Iteration 4
+;Goodbye!
+
+;4.4. Regular Expressions
+
+;; pound, open quote, close quote
+#"regular-expression"
+
+(defn needs-matching-part?
+  [part]
+  (re-find #"^left-" (:name part)))
+
+(needs-matching-part? {:name "left-eye"})
+; => true
+(needs-matching-part? {:name "neckbeard"})
+; => false
+
+;make-matching-part uses a regex to replace "left-" with "right-":
+(defn make-matching-part
+  [part]
+  {:name (clojure.string/replace (:name part) #"^left-" "right-")
+   :size (:size part)})
+
+(make-matching-part {:name "left-eye" :size 1})
+; => {:name "right-eye" :size 1}]
