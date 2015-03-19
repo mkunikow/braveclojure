@@ -181,3 +181,47 @@
 ;2.2.6. concat
 (concat [1 2] [3 4])
 ; => (1 2 3 4)
+
+;2.3. Lazy Seqs
+
+;2.3.1. Demonstrating Lazy Seq Efficiency
+
+(def vampire-database
+  {0 {:makes-blood-puns? false, :has-pulse? true  :name "McFishwich"}
+   1 {:makes-blood-puns? false, :has-pulse? true  :name "McMackson"}
+   2 {:makes-blood-puns? true,  :has-pulse? false :name "Damon Salvatore"}
+   3 {:makes-blood-puns? true,  :has-pulse? true  :name "Mickey Mouse"}})
+
+(defn vampire-related-details
+  [social-security-number]
+  (Thread/sleep 1000)
+  (get vampire-database social-security-number))
+
+(defn vampire?
+  [record]
+  (and (:makes-blood-puns? record)
+       (not (:has-pulse? record))))
+
+(defn identify-vampire
+  [social-security-numbers]
+  (first (filter vampire?
+                 (map vampire-related-details social-security-numbers))))
+
+(time (identify-vampire (range 0 1000000)))
+;"Elapsed time: 32019.912 msecs"
+; => {:name "Damon Salvatore", :makes-blood-puns? true, :has-pulse? false}
+
+;2.3.2. Infinite Sequences
+(concat (take 8 (repeat "na")) ["Batman!"])
+; => ("na" "na" "na" "na" "na" "na" "na" "na" "Batman!")
+
+(take 3 (repeatedly (fn [] (rand-int 10))))
+; => (1 4 0)
+
+(defn even-numbers
+  ([] (even-numbers 0))
+  ([n] (cons n (lazy-seq (even-numbers (+ n 2))))))
+
+(take 10 (even-numbers))
+; => (0 2 4 6 8 10 12 14 16 18)
+
