@@ -225,3 +225,160 @@
 (take 10 (even-numbers))
 ; => (0 2 4 6 8 10 12 14 16 18)
 
+;3. The Collection Abstraction
+
+(empty? [])
+; => true
+
+(empty? ["no!"])
+; => false
+
+;3.1. Into
+(map identity {:sunlight-reaction "Glitter!"})
+; => ([:sunlight-reaction "Glitter!"])
+
+(into {} (map identity {:sunlight-reaction "Glitter!"}))
+; => {:sunlight-reaction "Glitter!"}
+
+
+;; convert back to vector
+(map identity [:garlic :sesame-oil :fried-eggs])
+; map returns a seq
+; => (:garlic :sesame-oil :fried-eggs)
+
+(into [] (map identity [:garlic :sesame-oil :fried-eggs]))
+; => [:garlic :sesame-oil :fried-eggs]
+
+;; convert back to list
+(map identity [:garlic-clove :garlic-clove])
+; => (:garlic-clove :garlic-clove)
+
+;; sets only contain unique values
+(into #{} (map identity [:garlic-clove :garlic-clove]))
+; => #{:garlic-clove}
+
+(into {:favorite-emotion "gloomy"} [[:sunlight-reaction "Glitter!"]])
+; => {:favorite-emotion "gloomy" :sunlight-reaction "Glitter!"}
+
+(into ["cherry"] '("pine" "spruce"))
+; => ["cherry" "pine" "spruce"]
+
+(into {:favorite-animal "kitty"} {:least-favorite-smell "dog"
+                                  :relationship-with-teenager "creepy"})
+; =>
+; {:favorite-animal "kitty"
+;  :relationship-with-teenager "creepy"
+;  :least-favorite-smell "dog"}
+
+;3.2. Conj
+
+(conj [0] [1])
+; => [0 [1]]
+;; Whoopsie! Looks like it added the entire vector [1] onto [0].
+;; Compare to into:
+
+(into [0] [1])
+; => [0 1]
+
+;; Here's what we want:
+(conj [0] 1)
+; => [0 1]
+
+;; We can supply as many elements to add as we want:
+(conj [0] 1 2 3 4)
+; => [0 1 2 3 4]
+
+;; We can also add to maps:
+(conj {:time "midnight"} [:place "ye olde cemetarium"])
+; => {:place "ye olde cemetarium" :time "midnight"}
+
+(defn my-conj
+  [target & additions]
+  (into target additions))
+
+(my-conj [0] 1 2 3)
+; => [0 1 2 3]
+
+;This kind of pattern isn't that uncommon. You'll see two functions which do the same thing,
+;it's just that one takes a rest-param (conj) and one takes a seqable data structure (into).
+
+
+;4. Function Functions
+
+;4.1. apply
+(defn my-into
+  [target additions]
+  (apply conj target additions))
+
+(my-into [0] [1 2 3])
+; => [0 1 2 3]
+
+;; the above call to my-into is equivalent to calling:
+(conj [0] 1 2 3)
+
+
+;; We pass only one argument and max returns it:
+(max [0 1 2])
+; => [0 1 2]
+
+;; Let's "explode" the argument:
+(apply max [0 1 2])
+; => 2
+
+;4.2. partial
+
+(def add10 (partial + 10))
+(add10 3) ;=> 13
+(add10 5) ;=> 15
+
+(def add-missing-elements
+  (partial conj ["water" "earth" "air"]))
+
+(add-missing-elements "unobtainium" "adamantium")
+; => ["water" "earth" "air" "unobtainium" "adamantium"]
+
+(defn my-partial
+  [partialized-fn & args]
+  (fn [& more-args]
+    (apply partialized-fn (into more-args (reverse args)))))
+
+(def add20 (my-partial + 20))
+(add20 3) ; => 23
+
+(fn [& more-args]
+  (apply + (into [20] more-args)))
+
+(defn lousy-logger
+  [log-level message]
+  (condp = log-level
+    :warn (clojure.string/lower-case message)
+    :emergency (clojure.string/upper-case message)))
+
+(def warn (partial lousy-logger :warn))
+
+(warn "Red light ahead")
+; => "red light ahead"
+
+;4.3. complement
+
+(defn identify-humans
+  [social-security-numbers]
+  (filter #(not (vampire? %))
+          (map vampire-related-details social-security-numbers)))
+
+(def not-vampire? (complement vampire?))
+(defn identify-humans
+  [social-security-numbers]
+  (filter not-vampire?
+          (map vampire-related-details social-security-numbers)))
+
+(defn my-complement
+  [fun]
+  (fn [& args]
+    (not (apply fun args))))
+
+(def my-pos? (my-complement neg?))
+(my-pos? 1)  ; => true
+(my-pos? -1) ; => false
+
+;5. FWPD
